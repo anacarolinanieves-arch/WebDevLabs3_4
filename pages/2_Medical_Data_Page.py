@@ -73,17 +73,40 @@ deviceList = [
 selectedDevice = st.selectbox("Select a medical device type:", deviceList)
 yearRange = st.slider("Select year range:", 2018, 2025, (2020, 2024))
 topNum = st.slider("Number of top manufacturers / failure reasons to display:", 3, 10, 5)
-mfgInput = st.text_input("Optional: filter by manufacturer name (e.g., Medtronic, Philips, Baxter):")
-
 startYear = yearRange[0]
 endYear = yearRange[1]
-searchQuery = buildQuery(selectedDevice, startYear, endYear, mfgInput)
+#Manufacturers dropdown
+baseQuery = buildQuery(selectedDevice, startYear, endYear, "")
+
+availableMfgResults = getFdaCounts(
+    baseQuery,
+    "device.manufacturer_d_name.exact"
+)
+
+availableMfgDict = makeCountDict(availableMfgResults, 1000)
+
+manufacturerList = ["All Manufacturers"] + list(availableMfgDict.keys())
+
+selectedMfg = st.selectbox(
+    "Select manufacturer:",
+    manufacturerList
+)
+
+if selectedMfg == "All Manufacturers":
+    searchQuery = baseQuery
+else:
+    searchQuery = buildQuery(
+        selectedDevice,
+        startYear,
+        endYear,
+        selectedMfg
+    )
 
 eventResults = getFdaCounts(searchQuery, "event_type.exact")
 dateResults = getFdaCounts(searchQuery, "date_received")
-mfgResults = getFdaCounts(searchQuery, "device.manufacturer_d_name.exact")
 probResults = getFdaCounts(searchQuery, "product_problems.exact")
 
+mfgResults = availableMfgResults
 if not eventResults:
     st.warning("No FDA reports found for those filters. Try clearing the manufacturer filter or widening the year range.")
 else:
